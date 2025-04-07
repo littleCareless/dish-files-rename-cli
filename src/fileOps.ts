@@ -423,9 +423,41 @@ async function updateImportStatements(
       continue;
     }
 
-    // 处理 .ts、.js、.tsx 和 .jsx 文件
+    // 扩展处理的文件类型
     const { ext } = path.parse(entry.name);
-    if (![".ts", ".js", ".tsx", ".jsx"].includes(ext)) {
+    const supportedExtensions = [
+      // JavaScript/TypeScript 文件
+      ".ts",
+      ".js",
+      ".tsx",
+      ".jsx",
+      ".mts",
+      ".mjs",
+      ".cjs",
+      ".cts",
+      // 框架特有文件类型
+      ".vue",
+      ".svelte",
+      ".astro",
+      // 样式文件
+      ".css",
+      ".scss",
+      ".sass",
+      ".less",
+      ".styl",
+      // HTML/XML/SVG
+      ".html",
+      ".xml",
+      ".svg",
+      // JSON/配置文件
+      ".json",
+      ".jsonc",
+      ".json5",
+      // 其他文件类型
+      ".md",
+    ];
+
+    if (!supportedExtensions.includes(ext)) {
       continue;
     }
 
@@ -459,6 +491,32 @@ async function updateImportStatements(
 
     // 匹配 require 语句: require('./file')
     const requireRegex = /require\(\s*['"]([^'"]+)['"]\s*\)/g;
+
+    // 匹配导出语句: export * from './file'; export { x } from './file'; 等
+    const exportRegex =
+      /export\s+(?:(?:type\s+)?(?:(?:\*)|(?:{[^{}]*?}))\s+from\s+)['"]([^'"]+)['"]/g;
+
+    // 匹配资源文件路径: const imgUrl = './assets/image.png' 或 const url = `./path/${var}`
+    const resourcePathRegex = /(['"`])(\.\/?(?:\.\.\/)*(?:[^'"`;]*?))(['"`])/g;
+
+    // 匹配 JSX/TSX/Vue/Svelte 中的资源引用: <img src="./images/logo.png" />
+    const jsxPathRegex =
+      /(?:src|href|url|path|source|background|poster)=(['"])(\.\/?(?:\.\.\/)*[^'"]*?)(['"])/g;
+
+    // 匹配 CSS/SCSS 中的 url(): url('./images/bg.png')
+    const cssUrlRegex =
+      /url\(\s*(['"]?)(\.\/?(?:\.\.\/)*[^'")]*?)(['"]?)\s*\)/g;
+
+    // 匹配 HTML 文件中的路径
+    const htmlPathRegex =
+      /(?:src|href|data-src|srcset)=(['"])(\.\/?(?:\.\.\/)*[^'"]*?)(['"])/g;
+
+    // 匹配 JSON 配置文件中的路径: "outputDir": "./dist"
+    const jsonPathRegex = /:\s*(['"])(\.\/?(?:\.\.\/)*[^'"]*?)(['"])/g;
+
+    // 匹配类型引用文件: /// <reference path="./types.d.ts" />
+    const typeRefRegex =
+      /\/\/\/\s*<reference\s+path=(['"])(\.\/?(?:\.\.\/)*[^'"]*?)(['"])\s*\/>/g;
 
     // 更新普通 import 语句
     let newContent = content.replace(importRegex, (match, importPath) => {
@@ -505,11 +563,153 @@ async function updateImportStatements(
       return match;
     });
 
+    // 更新导出语句
+    newContent = newContent.replace(exportRegex, (match, exportPath) => {
+      const result = updateImportPath(exportPath, filePath);
+      if (result.updated) {
+        modified = true;
+        importsUpdated++;
+        fileImportDetails.push({
+          oldImport: exportPath,
+          newImport: result.newPath,
+        });
+        return match.replace(exportPath, result.newPath);
+      }
+      return match;
+    });
+
+    // 更新资源文件路径
+    newContent = newContent.replace(
+      resourcePathRegex,
+      (match, open, resourcePath, close) => {
+        // 只处理相对路径
+        if (resourcePath.startsWith("./") || resourcePath.startsWith("../")) {
+          const result = updateImportPath(resourcePath, filePath);
+          if (result.updated) {
+            modified = true;
+            importsUpdated++;
+            fileImportDetails.push({
+              oldImport: resourcePath,
+              newImport: result.newPath,
+            });
+            return `${open}${result.newPath}${close}`;
+          }
+        }
+        return match;
+      }
+    );
+
+    // 更新 JSX/TSX/Vue/Svelte 中的资源引用路径
+    newContent = newContent.replace(
+      jsxPathRegex,
+      (match, open, resourcePath, close) => {
+        if (resourcePath.startsWith("./") || resourcePath.startsWith("../")) {
+          const result = updateImportPath(resourcePath, filePath);
+          if (result.updated) {
+            modified = true;
+            importsUpdated++;
+            fileImportDetails.push({
+              oldImport: resourcePath,
+              newImport: result.newPath,
+            });
+            return match.replace(resourcePath, result.newPath);
+          }
+        }
+        return match;
+      }
+    );
+
+    // 更新 CSS/SCSS 中的 url() 路径
+    newContent = newContent.replace(
+      cssUrlRegex,
+      (match, open, resourcePath, close) => {
+        if (resourcePath.startsWith("./") || resourcePath.startsWith("../")) {
+          const result = updateImportPath(resourcePath, filePath);
+          if (result.updated) {
+            modified = true;
+            importsUpdated++;
+            fileImportDetails.push({
+              oldImport: resourcePath,
+              newImport: result.newPath,
+            });
+            return `url(${open}${result.newPath}${close})`;
+          }
+        }
+        return match;
+      }
+    );
+
+    // 更新 HTML 文件中的路径
+    if (ext === ".html" || ext === ".xml" || ext === ".svg") {
+      newContent = newContent.replace(
+        htmlPathRegex,
+        (match, open, resourcePath, close) => {
+          if (resourcePath.startsWith("./") || resourcePath.startsWith("../")) {
+            const result = updateImportPath(resourcePath, filePath);
+            if (result.updated) {
+              modified = true;
+              importsUpdated++;
+              fileImportDetails.push({
+                oldImport: resourcePath,
+                newImport: result.newPath,
+              });
+              return match.replace(resourcePath, result.newPath);
+            }
+          }
+          return match;
+        }
+      );
+    }
+
+    // 更新 JSON 配置文件中的路径
+    if (ext === ".json" || ext === ".jsonc" || ext === ".json5") {
+      newContent = newContent.replace(
+        jsonPathRegex,
+        (match, open, resourcePath, close) => {
+          if (resourcePath.startsWith("./") || resourcePath.startsWith("../")) {
+            const result = updateImportPath(resourcePath, filePath);
+            if (result.updated) {
+              modified = true;
+              importsUpdated++;
+              fileImportDetails.push({
+                oldImport: resourcePath,
+                newImport: result.newPath,
+              });
+              return match.replace(resourcePath, result.newPath);
+            }
+          }
+          return match;
+        }
+      );
+    }
+
+    // 更新类型引用文件路径
+    newContent = newContent.replace(
+      typeRefRegex,
+      (match, open, resourcePath, close) => {
+        if (resourcePath.startsWith("./") || resourcePath.startsWith("../")) {
+          const result = updateImportPath(resourcePath, filePath);
+          if (result.updated) {
+            modified = true;
+            importsUpdated++;
+            fileImportDetails.push({
+              oldImport: resourcePath,
+              newImport: result.newPath,
+            });
+            return match.replace(resourcePath, result.newPath);
+          }
+        }
+        return match;
+      }
+    );
+
     // 如果文件被修改，写回文件
     if (modified) {
       try {
         writeFileSync(filePath, newContent, "utf-8");
-        console.log(`Updated ${importsUpdated} imports in: ${filePath}`);
+        console.log(
+          `Updated ${importsUpdated} imports/references in: ${filePath}`
+        );
 
         // 记录详细的导入更新信息
         fileImportDetails.forEach((detail) => {
@@ -517,7 +717,7 @@ async function updateImportStatements(
           updatedImportDetails.push({
             file: filePath,
             oldImport: detail.oldImport,
-            newImport: detail.newImport,
+            newImport: detail.newImport, // 修复：使用detail.newImport而不是detail.newPath
           });
         });
 
@@ -531,14 +731,14 @@ async function updateImportStatements(
 
   // 打印更新统计信息
   if (totalFilesUpdated > 0) {
-    console.log(`\n--- Import Statements Update Summary ---`);
-    console.log(`Files scanned: ${totalFilesScanned}`);
-    console.log(`Files updated: ${totalFilesUpdated}`);
-    console.log(`Import statements updated: ${totalImportsUpdated}`);
+    console.log(`\n--- 文件路径引用更新摘要 ---`);
+    console.log(`文件扫描数量: ${totalFilesScanned}`);
+    console.log(`文件更新数量: ${totalFilesUpdated}`);
+    console.log(`更新的路径引用: ${totalImportsUpdated}`);
 
     // 输出按文件分组的详细更新日志
     if (updatedImportDetails.length > 0) {
-      console.log(`\nDetailed Update Log:`);
+      console.log(`\n详细更新日志:`);
       const fileGroups = new Map<
         string,
         { oldImport: string; newImport: string }[]
