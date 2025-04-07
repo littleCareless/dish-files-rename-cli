@@ -12,7 +12,9 @@ function parseArgs() {
         .requiredOption("-t, --to <case>", "目标文件名格式", validateCase)
         .option("-r, --recursive", "是否递归处理子目录", false)
         .option("-p, --prefix <prefix>", "添加文件名前缀")
-        .option("-d, --dry-run", "试运行模式,不实际重命名", false);
+        .option("-d, --dry-run", "试运行模式,不实际重命名", false)
+        .option("-e, --respect-excludes", "尊重.gitignore等排除规则", true)
+        .option("-u, --update-imports", "更新文件中的import语句引用", true);
     const opts = program.parse().opts();
     return {
         // from: opts.from,
@@ -20,6 +22,8 @@ function parseArgs() {
         recursive: opts.recursive,
         prefix: opts.prefix,
         dryRun: opts.dryRun,
+        respectExcludes: opts.respectExcludes,
+        updateImports: opts.updateImports,
     };
 }
 exports.parseArgs = parseArgs;

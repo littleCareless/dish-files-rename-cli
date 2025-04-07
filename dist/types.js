@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.CaseType = void 0;
+exports.PRESERVED_WORDS_CONFIG_FILE = exports.CaseType = void 0;
 var CaseType;
 (function (CaseType) {
     CaseType["SNAKE"] = "snake";
@@ -17,3 +17,5 @@ var CaseType;
     CaseType["SENTENCE"] = "sentence";
     CaseType["TRAIN"] = "train";
 })(CaseType = exports.CaseType || (exports.CaseType = {}));
+// 用于保存不可分割单词列表的配置文件名
+exports.PRESERVED_WORDS_CONFIG_FILE = ".renamer-preserved-words.json";
