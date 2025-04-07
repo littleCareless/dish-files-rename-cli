@@ -1,44 +1,44 @@
 {
-    "name": "dish-files-rename-cli",
-    "version": "1.0.0",
-    "description": "文件批量重命名工具",
-    "main": "dist/index.js",
-    "author": "littleCareless",
-    "license": "MIT",
-    "keywords": [
-        "rename",
-        "files",
-        "批量重命名",
-        "cli",
-        "case-converter",
-        "snake-case",
-        "camel-case",
-        "batch",
-        "utility",
-        "typescript",
-        "bulk",
-        "filename"
-    ],
-    "bin": {
-        "rename-files": "./dist/index.js"
-    },
-    "scripts": {
-        "build": "tsc",
-        "start": "ts-node src/index.ts",
-        "dev": "nodemon --watch src -e ts --exec ts-node src/index.ts",
-        "test": "jest"
-    },
-    "dependencies": {
-        "inquirer": "^8.2.6",
-        "micromatch": "^4.0.8"
-    },
-    "devDependencies": {
-        "@types/commander": "^2.12.0",
-        "@types/inquirer": "^8.2.10",
-        "@types/micromatch": "^4.0.9",
-        "@types/node": "^18.0.0",
-        "nodemon": "^2.0.22",
-        "ts-node": "^10.9.1",
-        "typescript": "^4.9.5"
-    }
+  "name": "dish-files-rename-cli",
+  "version": "1.1.0",
+  "description": "文件批量重命名工具",
+  "main": "dist/index.js",
+  "author": "littleCareless",
+  "license": "MIT",
+  "keywords": [
+    "rename",
+    "files",
+    "批量重命名",
+    "cli",
+    "case-converter",
+    "snake-case",
+    "camel-case",
+    "batch",
+    "utility",
+    "typescript",
+    "bulk",
+    "filename"
+  ],
+  "bin": {
+    "rename-files": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "ts-node src/index.ts",
+    "dev": "nodemon --watch src -e ts --exec ts-node src/index.ts",
+    "test": "jest"
+  },
+  "dependencies": {
+    "inquirer": "^8.2.6",
+    "micromatch": "^4.0.8"
+  },
+  "devDependencies": {
+    "@types/commander": "^2.12.0",
+    "@types/inquirer": "^8.2.10",
+    "@types/micromatch": "^4.0.9",
+    "@types/node": "^18.0.0",
+    "nodemon": "^2.0.22",
+    "ts-node": "^10.9.1",
+    "typescript": "^4.9.5"
+  }
 }

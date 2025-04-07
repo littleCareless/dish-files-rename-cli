@@ -579,8 +579,6 @@ function updateImportPath(importPath, filePath) {
 async function renameFiles(dir, options) {
     // 重置重命名映射
     renamedFiles = new Map();
-    // 确保初始化保留词列表
-    (0, nameConverters_1.initPreservedWords)(options.preservedWords);
     // 读取排除模式
     const excludePatterns = options.respectExcludes
         ? await readExcludePatterns(dir)
