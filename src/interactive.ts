@@ -47,12 +47,6 @@ export async function promptOptions(): Promise<Options> {
     },
     {
       type: "confirm",
-      name: "dryRun",
-      message: "是否使用试运行模式(只显示会如何重命名,不实际执行)?",
-      default: true,
-    },
-    {
-      type: "confirm",
       name: "respectExcludes",
       message: "是否尊重 .gitignore 等排除规则?",
       default: true,
@@ -84,7 +78,7 @@ export async function promptOptions(): Promise<Options> {
     to: answers.to as CaseType,
     recursive: answers.recursive,
     prefix: answers.prefix || undefined,
-    dryRun: answers.dryRun,
+    dryRun: true, // 总是先试运行
     respectExcludes: answers.respectExcludes,
     updateImports: answers.updateImports,
     preservedWords: preservedWords,
@@ -207,4 +201,16 @@ async function managePreservedWordsList(
   console.log(`保留词列表已更新，现在有 ${updatedWords.length} 个保留词`);
 
   return updatedWords;
+}
+
+export async function confirmExecution(): Promise<boolean> {
+  const { confirm } = await inquirer.prompt([
+    {
+      type: "confirm",
+      name: "confirm",
+      message: "试运行完成, 是否确认执行重命名?",
+      default: false,
+    },
+  ]);
+  return confirm;
 }

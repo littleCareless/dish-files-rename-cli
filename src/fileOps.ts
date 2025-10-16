@@ -879,13 +879,15 @@ async function collectRenamingMap(
       options.respectExcludes &&
       shouldExclude(oldPath, process.cwd(), excludePatterns)
     ) {
-      console.log(`Skipping: ${oldPath} (excluded by patterns)`);
+      if (!options.dryRun) {
+        console.log(`Skipping: ${oldPath} (excluded by patterns)`);
+      }
       continue;
     }
 
+    // 如果是目录且需要递归处理，则先递归
     if (entry.isDirectory() && options.recursive) {
       await collectRenamingMap(oldPath, options, excludePatterns);
-      continue;
     }
 
     const { name, ext } = path.parse(entry.name);
@@ -915,10 +917,23 @@ async function collectRenamingMap(
 
 // 执行重命名操作
 async function executeRenaming(options: Options): Promise<void> {
-  for (const [oldPath, newPath] of renamedFiles.entries()) {
+  // 将重命名任务按路径深度降序排序，确保先重命名子文件/目录
+  const sortedRenames = Array.from(renamedFiles.entries()).sort(
+    ([oldPathA], [oldPathB]) => {
+      const depthA = oldPathA.split(path.sep).length;
+      const depthB = oldPathB.split(path.sep).length;
+      return depthB - depthA;
+    }
+  );
+
+  for (const [oldPath, newPath] of sortedRenames) {
     if (!options.dryRun) {
-      await fs.rename(oldPath, newPath);
-      console.log(`Renamed: ${oldPath} -> ${newPath}`);
+      try {
+        await fs.rename(oldPath, newPath);
+        console.log(`Renamed: ${oldPath} -> ${newPath}`);
+      } catch (error) {
+        console.error(`Error renaming ${oldPath} to ${newPath}:`, error);
+      }
     } else {
       console.log(`Will rename: ${oldPath} -> ${newPath}`);
     }
